@@ -11,7 +11,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=5):
         correct = 0
         total = 0
         
-        for inputs, labels in tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
+        for inputs, labels, _ in tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
             inputs, labels = inputs.to(device), labels.to(device)
             
             # 清零梯度
@@ -19,7 +19,9 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=5):
             
             # 前向传播
             outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            # Adjust outputs to match labels shape for BCEWithLogitsLoss
+            outputs = outputs.squeeze(dim=1) if outputs.dim() > 1 else outputs
+            loss = criterion(outputs, labels.float())
             
             # 反向传播和优化
             loss.backward()
@@ -27,7 +29,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=5):
             
             # 统计信息
             running_loss += loss.item()
-            _, predicted = torch.max(outputs.data, 1)
+            predicted = (torch.sigmoid(outputs) > 0.5).float()
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
         
