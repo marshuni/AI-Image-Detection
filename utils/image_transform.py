@@ -18,7 +18,7 @@ def extract_fft(img: np.ndarray) -> np.ndarray:
     fft = 20 * np.log(np.abs(fshift) + 1e-8)  # 避免log(0)
 
     # 归一化到0-1之间
-    fft = (fft - fft.min()) / (fft.max()-fft.min())
+    fft = (fft - fft.min()) / (fft.max() - fft.min() + 1e-8)
 
     return fft.astype(np.float32)
 
@@ -58,7 +58,7 @@ def extract_lbp(img: np.ndarray, radius: int = 1, n_points: int = 8) -> np.ndarr
     lbp = local_binary_pattern(img, P=n_points, R=radius, method='uniform')
 
     # 归一化
-    lbp = (lbp - lbp.min()) / (lbp.max() - lbp.min())
+    lbp = (lbp - lbp.min()) / (lbp.max() - lbp.min() + 1e-8)
 
     return lbp.astype(np.float32)
 
