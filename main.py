@@ -1,60 +1,58 @@
 import torch
 import torch.nn as nn
-from torchvision.models import ResNet34_Weights
+from torchvision.models import ResNet18_Weights
 
 import tqdm
 
 from config import *
-
+from train import *
+from test import *
+from model.baseline import ResNet18Classifier
 from dataloader import get_dataloaders
 train_loader, val_loader, test_loader = get_dataloaders(batch_size=256)
 
+def train_model():
+    # 初始化模型
+    model = ResNet18Classifier(weights=ResNet18_Weights.DEFAULT)
+    model = model.to(device)
 
-from model.baseline import ResNet34Classifier
-# 初始化模型
+    # 定义损失函数和优化器
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
 
-# model = ResNet34Classifier(weights=ResNet34_Weights.DEFAULT)
-# model = model.to(device)
+    # 训练和保存模型
+    train_model(model, train_loader, criterion, optimizer, num_epochs=5)
+    torch.save(model.state_dict(), './checkpoint/resnet18_classifier.pth')
 
-# 加载保存的模型
-model = ResNet34Classifier(weights=None)
-model.load_state_dict(torch.load('./checkpoint/resnet34_classifier.pth'))
-model = model.to(device)
+    return model
 
+def load_model():
+    # 加载保存的模型
+    model = ResNet18Classifier(weights=None)
+    model.load_state_dict(torch.load('./checkpoint/resnet18_classifier.pth'))
+    model = model.to(device)
+    return model
 
-from train import *
-from test import *
+def test_model(model):
+    # 测试模型
+    labels,predictions = test_model(model, val_loader)
 
-# 定义损失函数和优化器
-criterion = nn.BCEWithLogitsLoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
+    accuracy, precision, recall, f1 = calculate_metrics(labels,predictions)
+    auroc = calculate_roc(labels,predictions)
 
-# 训练和保存模型
-# train_model(model, train_loader, criterion, optimizer, num_epochs=5)
-# torch.save(model.state_dict(), './checkpoint/resnet34_classifier.pth')
+    results = [
+        f"准确率 (Accuracy): {accuracy:.4f}",
+        f"精确率 (Precision): {precision:.4f}",
+        f"召回率 (Recall): {recall:.4f}",
+        f"F1-Score: {f1:.4f}",
+        f"ROC-AUC: {auroc:.4f}",
+    ]
+    for line in results:
+        print(line)
 
-# 测试模型
-labels,predictions = test_model(model, val_loader)
-# test_model_for_kaggle_submission(model, test_loader)
+if __name__ == "__main__":
+    # model = train_model()
+    model = load_model()
 
-accuracy, precision, recall, f1 = calculate_metrics(labels,predictions)
-auroc = calculate_roc(labels,predictions)
-
-results = [
-    f"准确率 (Accuracy): {accuracy:.4f}",
-    f"精确率 (Precision): {precision:.4f}",
-    f"召回率 (Recall): {recall:.4f}",
-    f"F1-Score: {f1:.4f}",
-    f"ROC-AUC: {auroc:.4f}",
-]
-for line in results:
-    print(line)
-
-
-
-
-
-
-
-
-
+    # test_model(model)
+    test_model_for_kaggle_submission(model, test_loader)

@@ -54,25 +54,26 @@ test_transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Define the root directory of the dataset
-dataset_root = './dataset/ai-vs-human-generated-dataset/'
-# Load the CSV file
-train_df = pd.read_csv(os.path.join(dataset_root, 'train.csv'), index_col=0)
-test_df = pd.read_csv(os.path.join(dataset_root, 'test.csv'))
 
-# Split into training and validation (80% train, 20% validation)
-train_df, val_df = train_test_split(train_df, test_size=0.2, random_state=42, stratify=train_df['label'])
 
-# Create datasets
-train_dataset = ImageDataset(train_df, dataset_root, transform=train_transform, is_test=False)
-val_dataset = ImageDataset(val_df, dataset_root, transform=test_transform, is_test=False)
-test_dataset = ImageDataset(test_df, dataset_root, transform=test_transform, is_test=True)
+def get_dataloaders(dataset='ai-vs-human', batch_size=256):
+    if dataset == 'ai-vs-human':
+        # Define the root directory of the dataset
+        dataset_root = './dataset/ai-vs-human-generated-dataset/'
+        # Load the CSV file
+        train_df = pd.read_csv(os.path.join(dataset_root, 'train.csv'), index_col=0)
+        test_df = pd.read_csv(os.path.join(dataset_root, 'test.csv'))
 
-def get_dataloaders(batch_size=256):
-    # Create dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+        # Split into training and validation (80% train, 20% validation)
+        train_df, val_df = train_test_split(train_df, test_size=0.2, random_state=42, stratify=train_df['label'])
+        # Create datasets
+        train_dataset = ImageDataset(train_df, dataset_root, transform=train_transform, is_test=False)
+        val_dataset = ImageDataset(val_df, dataset_root, transform=test_transform, is_test=False)
+        test_dataset = ImageDataset(test_df, dataset_root, transform=test_transform, is_test=True)
+        # Create dataloaders
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
     return train_loader, val_loader, test_loader
 
