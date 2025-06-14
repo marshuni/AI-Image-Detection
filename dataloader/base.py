@@ -5,10 +5,11 @@ from torch.utils.data import Dataset,DataLoader
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
 from PIL import Image
 
-class ImageDataset(Dataset):
+from utils.image_transform import extract_fft,extract_lbp,extract_srm_residual
+
+class BaseImageDataset(Dataset):
     def __init__(self, df, root_dir, transform=None, is_test=False):
         self.df = df
         self.root_dir = root_dir
@@ -36,44 +37,42 @@ class ImageDataset(Dataset):
             return image, -1 , self.df.iloc[idx, 0]
         else:
             return image, label
-        
 
 # Training Transform (with data augmentation)
 train_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.RandomHorizontalFlip(),  # Augmentation: Randomly flip images
+    transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(10),      # Augmentation: Rotate images slightly
+    transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # Test/Validation Transform (NO augmentation)
 test_transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Keep it consistent
+    transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 
 
-def get_dataloaders(dataset='ai-vs-human', batch_size=256):
-    if dataset == 'ai-vs-human':
-        # Define the root directory of the dataset
-        dataset_root = './dataset/ai-vs-human-generated-dataset/'
-        # Load the CSV file
-        train_df = pd.read_csv(os.path.join(dataset_root, 'train.csv'), index_col=0)
-        test_df = pd.read_csv(os.path.join(dataset_root, 'test.csv'))
+def get_dataloaders(batch_size=256):
+    # Define the root directory of the dataset
+    dataset_root = './dataset/ai-vs-human-generated-dataset/'
+    # Load the CSV file
+    train_df = pd.read_csv(os.path.join(dataset_root, 'train.csv'), index_col=0)
+    test_df = pd.read_csv(os.path.join(dataset_root, 'test.csv'))
 
-        # Split into training and validation (80% train, 20% validation)
-        train_df, val_df = train_test_split(train_df, test_size=0.2, random_state=42, stratify=train_df['label'])
-        # Create datasets
-        train_dataset = ImageDataset(train_df, dataset_root, transform=train_transform, is_test=False)
-        val_dataset = ImageDataset(val_df, dataset_root, transform=test_transform, is_test=False)
-        test_dataset = ImageDataset(test_df, dataset_root, transform=test_transform, is_test=True)
-        # Create dataloaders
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    # Split into training and validation (80% train, 20% validation)
+    train_df, val_df = train_test_split(train_df, test_size=0.2, random_state=42, stratify=train_df['label'])
+    # Create datasets
+    train_dataset = BaseImageDataset(train_df, dataset_root, transform=train_transform, is_test=False)
+    val_dataset = BaseImageDataset(val_df, dataset_root, transform=test_transform, is_test=False)
+    test_dataset = BaseImageDataset(test_df, dataset_root, transform=test_transform, is_test=True)
+    # Create dataloaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
     return train_loader, val_loader, test_loader
 

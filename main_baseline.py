@@ -8,9 +8,10 @@ from config import *
 from train import *
 from test import *
 from model.baseline import ResNet18Classifier
-from dataloader import get_dataloaders
+from dataloader.base import get_dataloaders
 train_loader, val_loader, test_loader = get_dataloaders(batch_size=256)
 
+model_path = './checkpoint/baseline_resnet18_classifier.pth'
 def train_baseline():
     # 初始化模型
     model = ResNet18Classifier(weights=ResNet18_Weights.DEFAULT)
@@ -22,14 +23,14 @@ def train_baseline():
 
     # 训练和保存模型
     train_model(model, train_loader, criterion, optimizer, num_epochs=15)
-    torch.save(model.state_dict(), './checkpoint/resnet18_classifier.pth')
+    torch.save(model.state_dict(), model_path)
 
     return model
 
 def load_baseline():
     # 加载保存的模型
     model = ResNet18Classifier(weights=None)
-    model.load_state_dict(torch.load('./checkpoint/resnet18_classifier.pth'))
+    model.load_state_dict(torch.load(model_path))
     model = model.to(device)
     return model
 
@@ -57,5 +58,5 @@ if __name__ == "__main__":
     # model = train_baseline()
     model = load_baseline()
 
-    test_baseline(model)
-    # test_model_for_kaggle_submission(model, test_loader)
+    # test_baseline(model)
+    test_model_for_kaggle_submission(model, test_loader)
