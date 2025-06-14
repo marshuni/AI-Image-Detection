@@ -11,7 +11,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=5):
         correct = 0
         total = 0
         
-        for inputs, labels, _ in tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
+        for inputs, labels in tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
             inputs, labels = inputs.to(device), labels.to(device)
             
             # 清零梯度

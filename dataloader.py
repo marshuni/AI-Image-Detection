@@ -35,7 +35,7 @@ class ImageDataset(Dataset):
         if self.is_test:
             return image, -1 , self.df.iloc[idx, 0]
         else:
-            return image, label, None
+            return image, label
         
 
 # Training Transform (with data augmentation)

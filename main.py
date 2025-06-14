@@ -34,8 +34,25 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
 # torch.save(model.state_dict(), './checkpoint/resnet34_classifier.pth')
 
 # 测试模型
-# labels,predictions = test_model(model, val_loader)
-test_model_for_kaggle_submission(model, test_loader)
+labels,predictions = test_model(model, val_loader)
+# test_model_for_kaggle_submission(model, test_loader)
+
+accuracy, precision, recall, f1 = calculate_metrics(labels,predictions)
+auroc = calculate_roc(labels,predictions)
+
+results = [
+    f"准确率 (Accuracy): {accuracy:.4f}",
+    f"精确率 (Precision): {precision:.4f}",
+    f"召回率 (Recall): {recall:.4f}",
+    f"F1-Score: {f1:.4f}",
+    f"ROC-AUC: {auroc:.4f}",
+]
+for line in results:
+    print(line)
+
+
+
+
 
 
 
