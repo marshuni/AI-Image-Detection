@@ -8,17 +8,19 @@ def test_model(model, test_loader):
     model.eval()
     predicted_all = []
     labels_all = []
+    score_all = []
 
     with torch.no_grad():
         for inputs, labels in tqdm.tqdm(test_loader):
             inputs = inputs.to(device)
             outputs = model(inputs)
 
+            score_all.extend(torch.sigmoid(outputs).cpu().numpy().flatten())
             predicted = (torch.sigmoid(outputs) > 0.5).long().cpu().numpy().flatten()
             predicted_all.extend(predicted)
             labels_all.extend(labels.cpu().numpy().flatten())
 
-    return labels_all, predicted_all
+    return labels_all, predicted_all,score_all
 
 
 def test_model_for_kaggle_submission(model, test_loader):
