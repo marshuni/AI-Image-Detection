@@ -22,7 +22,7 @@ def train_baseline():
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-5)
 
     # 训练和保存模型
-    train_model(model, train_loader, criterion, optimizer, num_epochs=15)
+    train_model(model, train_loader, criterion, optimizer, num_epochs=75)
     torch.save(model.state_dict(), model_path)
 
     return model
@@ -55,8 +55,8 @@ def test_baseline(model):
         print(line)
 
 if __name__ == "__main__":
-    # model = train_baseline()
-    model = load_baseline()
+    model = train_baseline()
+    # model = load_baseline()
 
-    # test_baseline(model)
-    test_model_for_kaggle_submission(model, test_loader)
+    test_baseline(model)
+    # test_model_for_kaggle_submission(model, test_loader)

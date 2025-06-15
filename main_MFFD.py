@@ -23,7 +23,7 @@ def train_MFFD():
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-5)
 
     # 训练和保存模型
-    train_model(model, train_loader, criterion, optimizer, num_epochs=15)
+    train_model(model, train_loader, criterion, optimizer, num_epochs=75)
     torch.save(model.state_dict(), model_path)
 
     return model
