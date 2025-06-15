@@ -10,6 +10,7 @@ from PIL import Image
 
 import cv2
 from utils.image_transform import extract_fft,extract_lbp,extract_srm_residual
+import h5py
 
 class MultimodalFusionImageDataset(Dataset):
     def __init__(self, df, root_dir, transform=None, is_test=False):
@@ -30,48 +31,29 @@ class MultimodalFusionImageDataset(Dataset):
         if self.is_test:
             # Use the first column (assumed to be 'id' or 'file_name')
             img_path = os.path.join(self.root_dir, self.df.iloc[idx, 0])  
+            h5_path = os.path.join(self.root_dir, 'preprocessed',
+                            os.path.splitext(self.df.iloc[idx, 0])[0] + '_compressed.h5')
         else:
             # Use column names instead of hardcoded index
             img_path = os.path.join(self.root_dir, self.df['file_name'].iloc[idx])  
+            h5_path = os.path.join(self.root_dir, 'preprocessed',
+                            os.path.splitext(self.df['file_name'].iloc[idx])[0] + '_compressed.h5')
             label = int(self.df['label'].iloc[idx])  
 
-        # 读取图像
-        img = cv2.imread(img_path)
-
-        # 缩放为224x224
-        img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_LANCZOS4)
         
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # 从 h5 文件加载数据
+        with h5py.File(h5_path, 'r') as f:
+            array = f['data'][:]
 
-        # 通道 4: FFT频域
-        fft = extract_fft(gray)
-
-        # 通道 5: SRM滤波
-        srm = extract_srm_residual(gray)
-
-        # 通道 6: LBP纹理
-        lbp = extract_lbp(gray)
-
-        # 合并6通道，转Tensor
-        rgb = img.astype(np.float32) / 255.0  # HWC, [0,1]
-        # 标准化RGB通道
-        mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
-        std = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
-        rgb = np.transpose(rgb, (2, 0, 1))    # CHW, 3x224x224
-        rgb = (rgb - mean) / std
-        multi_channel = np.concatenate([rgb, 
-                        fft[None, ...], 
-                        srm[None, ...], 
-                        lbp[None, ...]], axis=0)  # 6x224x224
-        
-        multi_channel_tensor = torch.tensor(multi_channel, dtype=torch.float32)
+        # 转为 tensor
+        tensor = torch.tensor(array, dtype=torch.float32)
 
         if self.transform:
-            multi_channel_tensor = self.transform(multi_channel_tensor)
+            tensor = self.transform(tensor)
         if self.is_test:
-            return multi_channel_tensor, -1 , self.df.iloc[idx, 0]
+            return tensor, -1 , self.df.iloc[idx, 0]
         else:
-            return multi_channel_tensor, torch.tensor(label)
+            return tensor, torch.tensor(label)
         
 # Training Transform (with data augmentation)
 train_transform = None # transforms.Compose([
@@ -105,7 +87,7 @@ def get_dataloaders(batch_size=256):
     val_dataset = MultimodalFusionImageDataset(val_df, dataset_root, transform=test_transform, is_test=False)
     test_dataset = MultimodalFusionImageDataset(test_df, dataset_root, transform=test_transform, is_test=True)
     # Create dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
