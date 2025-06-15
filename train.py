@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import os
 
 # 训练函数
-def train_model(model, train_loader, criterion, optimizer, num_epochs=5):
+def train_model(model, train_loader, criterion, optimizer, num_epochs=5, model_path=None):
     model.train()
     losses = []
     best_loss = float('inf')
@@ -62,7 +62,15 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=5):
             trigger_times += 1
             if trigger_times >= patience:
                 print(f'Early stopping at epoch {epoch+1}')
+                if model_path:
+                    torch.save(model.state_dict(), model_path)
                 break
+        
+        # 每10个epoch保存一次模型
+        if (epoch + 1) % 10 == 0 and model_path:
+            torch.save(model.state_dict(), model_path)
+            print(f'Model saved at epoch {epoch+1} to {model_path}')
+
     plt.figure()
     pylab.xlim(0, num_epochs)
     plt.plot(range(1, num_epochs+1), losses, label='loss',color='blue')

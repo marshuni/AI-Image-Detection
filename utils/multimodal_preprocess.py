@@ -15,7 +15,7 @@ def preprocess_and_save(df, root_dir, preprocessed_root, is_test=False):
         else:
             img_name = df['file_name'].iloc[idx]
         img_path = os.path.join(root_dir, img_name)
-        save_path = os.path.join(preprocessed_root, os.path.splitext(img_name)[0] + '_compressed.h5')
+        save_path = os.path.join(preprocessed_root, os.path.splitext(img_name)[0] + '.npy')
 
         # 如果当前文件已存在，则跳过
         if os.path.exists(save_path):
@@ -67,13 +67,9 @@ def preprocess_and_save(df, root_dir, preprocessed_root, is_test=False):
                                         srm[None, ...], 
                                         lbp[None, ...]], axis=0)  # 6x224x224
 
-        # 转换为 float16
-        multi_channel = multi_channel.astype(np.float16)
-
-        # 使用 HDF5 存储并启用 gzip 压缩
+        # 使用 npy 格式进行压缩存储
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        with h5py.File(save_path, 'w') as f:
-            f.create_dataset('data', data=multi_channel, compression='gzip', compression_opts=4)
+        np.save(save_path, multi_channel)
 
 if __name__ == "__main__":
     # 配置参数

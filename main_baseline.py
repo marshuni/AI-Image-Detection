@@ -8,8 +8,12 @@ from config import *
 from train import *
 from test import *
 from model.baseline import ResNet18Classifier
-from dataloader.base import get_dataloaders
-train_loader, val_loader, test_loader = get_dataloaders(batch_size=256)
+# 采用原始数据集
+# from dataloader.base import get_dataloaders
+# train_loader, val_loader, test_loader = get_dataloaders(batch_size=256)
+
+from dataloader.genimage_base import get_dataloaders
+train_loader, val_loader = get_dataloaders(batch_size=256)
 
 model_path = './checkpoint/baseline_resnet18_classifier.pth'
 def train_baseline():
@@ -55,8 +59,8 @@ def test_baseline(model):
         print(line)
 
 if __name__ == "__main__":
-    model = train_baseline()
-    # model = load_baseline()
+    # model = train_baseline()
+    model = load_baseline()
 
     test_baseline(model)
     # test_model_for_kaggle_submission(model, test_loader)

@@ -74,7 +74,7 @@ def test_feature_extraction():
     img_files = [f for f in os.listdir(img_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
     if not img_files:
         raise FileNotFoundError("未在指定目录下找到图片文件")
-    sample_img_path = os.path.join(img_path, img_files[457])
+    sample_img_path = os.path.join(img_path, img_files[6666])
     print(f"使用样例图片: {sample_img_path}")
 
     # 读取图片
@@ -108,3 +108,5 @@ def test_feature_extraction():
     plt.subplots_adjust(wspace=0.02, hspace=0)
     plt.savefig("save/feature_visualization.png", bbox_inches='tight', pad_inches=0.5)
     plt.close()
+
+test_feature_extraction()

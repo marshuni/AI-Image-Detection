@@ -31,29 +31,65 @@ class MultimodalFusionImageDataset(Dataset):
         if self.is_test:
             # Use the first column (assumed to be 'id' or 'file_name')
             img_path = os.path.join(self.root_dir, self.df.iloc[idx, 0])  
-            h5_path = os.path.join(self.root_dir, 'preprocessed',
-                            os.path.splitext(self.df.iloc[idx, 0])[0] + '_compressed.h5')
         else:
             # Use column names instead of hardcoded index
             img_path = os.path.join(self.root_dir, self.df['file_name'].iloc[idx])  
-            h5_path = os.path.join(self.root_dir, 'preprocessed',
-                            os.path.splitext(self.df['file_name'].iloc[idx])[0] + '_compressed.h5')
             label = int(self.df['label'].iloc[idx])  
 
-        
-        # 从 h5 文件加载数据
-        with h5py.File(h5_path, 'r') as f:
-            array = f['data'][:]
+        # 读取图像
+        img = cv2.imread(img_path)
 
-        # 转为 tensor
-        tensor = torch.tensor(array, dtype=torch.float32)
+        # 缩放为224x224
+        # img = cv2.resize(img, (256, 256), interpolation=cv2.INTER_LANCZOS4)
+
+        # 中心裁剪224x224，若图片小于224则补全为224x224
+        h, w = img.shape[:2]
+        top = max((h - 224) // 2, 0)
+        left = max((w - 224) // 2, 0)
+        img_cropped = img[top:top+224, left:left+224]
+        pad_h = max(224 - img_cropped.shape[0], 0)
+        pad_w = max(224 - img_cropped.shape[1], 0)
+        if pad_h > 0 or pad_w > 0:
+            img_cropped = cv2.copyMakeBorder(
+                img_cropped,
+                top=0, bottom=pad_h,
+                left=0, right=pad_w,
+                borderType=cv2.BORDER_CONSTANT,
+                value=[0, 0, 0]
+            )
+        img = img_cropped
+        
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # 通道 4: FFT频域
+        fft = extract_fft(gray)
+
+        # 通道 5: SRM滤波
+        srm = extract_srm_residual(gray)
+
+        # 通道 6: LBP纹理
+        lbp = extract_lbp(gray)
+
+        # 合并6通道，转Tensor
+        rgb = img.astype(np.float32) / 255.0  # HWC, [0,1]
+        # 标准化RGB通道
+        mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
+        std = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
+        rgb = np.transpose(rgb, (2, 0, 1))    # CHW, 3x224x224
+        rgb = (rgb - mean) / std
+        multi_channel = np.concatenate([rgb, 
+                        fft[None, ...], 
+                        srm[None, ...], 
+                        lbp[None, ...]], axis=0)  # 6x224x224
+        
+        multi_channel_tensor = torch.tensor(multi_channel, dtype=torch.float32)
 
         if self.transform:
-            tensor = self.transform(tensor)
+            multi_channel_tensor = self.transform(multi_channel_tensor)
         if self.is_test:
-            return tensor, -1 , self.df.iloc[idx, 0]
+            return multi_channel_tensor, -1 , self.df.iloc[idx, 0]
         else:
-            return tensor, torch.tensor(label)
+            return multi_channel_tensor, torch.tensor(label)
         
 # Training Transform (with data augmentation)
 train_transform = None # transforms.Compose([
@@ -87,7 +123,7 @@ def get_dataloaders(batch_size=256):
     val_dataset = MultimodalFusionImageDataset(val_df, dataset_root, transform=test_transform, is_test=False)
     test_dataset = MultimodalFusionImageDataset(test_df, dataset_root, transform=test_transform, is_test=True)
     # Create dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=12)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
